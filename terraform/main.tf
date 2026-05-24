@@ -25,12 +25,12 @@ terraform {
     }
   }
 
-  backend "s3" {
-    # Configure in backend.hcl or via -backend-config
-    # bucket = "your-terraform-state-bucket"
-    # key    = "agentcore-owasp-demo/terraform.tfstate"
-    # region = "us-east-1"
-  }
+  # Local backend for development. For production, use S3:
+  # backend "s3" {
+  #   bucket = "your-terraform-state-bucket"
+  #   key    = "agentcore-owasp-demo/terraform.tfstate"
+  #   region = "us-east-1"
+  # }
 }
 
 provider "aws" {
