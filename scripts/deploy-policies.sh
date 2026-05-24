@@ -42,7 +42,7 @@ log_info "  Policies directory: ${POLICIES_DIR}"
 echo ""
 
 # Verify policies directory exists and has .cedar files
-if [ ! -d "${POLICIES_DIR}" ] || [ -z "$(ls ${POLICIES_DIR}/*.cedar 2>/dev/null)" ]; then
+if [ ! -d "${POLICIES_DIR}" ] || [ -z "$(ls "${POLICIES_DIR}"/*.cedar 2>/dev/null)" ]; then
     log_error "No .cedar files found in ${POLICIES_DIR}"
     exit 1
 fi
