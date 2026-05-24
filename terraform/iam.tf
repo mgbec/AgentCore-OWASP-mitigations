@@ -83,9 +83,9 @@ resource "aws_iam_role_policy" "runtime_agentcore" {
         ]
       },
       {
-        Sid    = "CodeInterpreter"
-        Effect = "Allow"
-        Action = ["bedrock-agentcore:InvokeCodeInterpreter"]
+        Sid      = "CodeInterpreter"
+        Effect   = "Allow"
+        Action   = ["bedrock-agentcore:InvokeCodeInterpreter"]
         Resource = "*"
       }
     ]
@@ -159,9 +159,9 @@ resource "aws_iam_role_policy" "gateway_invoke" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "InvokeRuntime"
-        Effect = "Allow"
-        Action = ["bedrock-agentcore:InvokeAgentRuntime"]
+        Sid      = "InvokeRuntime"
+        Effect   = "Allow"
+        Action   = ["bedrock-agentcore:InvokeAgentRuntime"]
         Resource = "arn:aws:bedrock-agentcore:${var.aws_region}:${data.aws_caller_identity.current.account_id}:runtime/*"
       },
       {

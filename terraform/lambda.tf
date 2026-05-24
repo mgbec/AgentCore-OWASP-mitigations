@@ -67,11 +67,11 @@ resource "aws_lambda_function" "input_validator" {
   function_name = "${var.project_name}-input-validator"
   description   = "Gateway interceptor: prompt injection detection (ASI01)"
 
-  s3_bucket = aws_s3_bucket.lambda_code.id
-  s3_key    = aws_s3_object.input_validator.key
-  handler   = "handler.lambda_handler"
-  runtime   = "python3.13"
-  timeout   = 10
+  s3_bucket   = aws_s3_bucket.lambda_code.id
+  s3_key      = aws_s3_object.input_validator.key
+  handler     = "handler.lambda_handler"
+  runtime     = "python3.13"
+  timeout     = 10
   memory_size = 256
 
   role = aws_iam_role.lambda_interceptor.arn
@@ -83,7 +83,7 @@ resource "aws_lambda_function" "input_validator" {
 
   environment {
     variables = {
-      ENVIRONMENT    = var.environment
+      ENVIRONMENT     = var.environment
       BLOCK_THRESHOLD = "0.7"
     }
   }
@@ -119,11 +119,11 @@ resource "aws_lambda_function" "output_filter" {
   function_name = "${var.project_name}-output-filter"
   description   = "Gateway interceptor: PII redaction and data leakage prevention"
 
-  s3_bucket = aws_s3_bucket.lambda_code.id
-  s3_key    = aws_s3_object.output_filter.key
-  handler   = "handler.lambda_handler"
-  runtime   = "python3.13"
-  timeout   = 10
+  s3_bucket   = aws_s3_bucket.lambda_code.id
+  s3_key      = aws_s3_object.output_filter.key
+  handler     = "handler.lambda_handler"
+  runtime     = "python3.13"
+  timeout     = 10
   memory_size = 256
 
   role = aws_iam_role.lambda_interceptor.arn

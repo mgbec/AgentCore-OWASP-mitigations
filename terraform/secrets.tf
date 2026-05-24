@@ -15,9 +15,9 @@ resource "aws_secretsmanager_secret" "financial_api_key" {
   recovery_window_in_days = var.environment == "prod" ? 30 : 7
 
   tags = {
-    Name        = "${var.project_name}-financial-api-key"
-    Purpose     = "agent-credential"
-    AgentCore   = "credential-provider"
+    Name      = "${var.project_name}-financial-api-key"
+    Purpose   = "agent-credential"
+    AgentCore = "credential-provider"
   }
 }
 
