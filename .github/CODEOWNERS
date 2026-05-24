@@ -1,0 +1,17 @@
+# Code owners for security-sensitive files
+# These files require review from security team before merge
+
+# Security modules require security review
+/src/security/          @mgbec
+/policies/              @mgbec
+/infrastructure/        @mgbec
+
+# Deployment and IAM changes require review
+/infrastructure/iam_roles.json  @mgbec
+/infrastructure/deploy.sh       @mgbec
+
+# Dependency changes require review
+/requirements.txt       @mgbec
+
+# GitHub config changes require review
+/.github/               @mgbec

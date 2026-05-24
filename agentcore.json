@@ -1,0 +1,54 @@
+{
+  "version": "1.0",
+  "runtime": {
+    "name": "owasp_mitigation_demo",
+    "description": "Secure Financial Assistant demonstrating OWASP risk mitigations via AgentCore",
+    "code": {
+      "entryPoint": "src/main.py",
+      "runtime": "PYTHON_3_13"
+    },
+    "network": {
+      "mode": "VPC",
+      "subnets": ["${SUBNET_1}", "${SUBNET_2}"],
+      "securityGroups": ["${SG_AGENT_RUNTIME}"]
+    },
+    "session": {
+      "idleTimeout": 300,
+      "maxLifetime": 1800
+    },
+    "protocol": "HTTP"
+  },
+  "identity": {
+    "workloadIdentities": [
+      {
+        "name": "triage-agent-identity",
+        "allowedOAuth2ReturnUrls": []
+      },
+      {
+        "name": "finance-agent-identity",
+        "allowedOAuth2ReturnUrls": []
+      },
+      {
+        "name": "knowledge-agent-identity",
+        "allowedOAuth2ReturnUrls": []
+      }
+    ],
+    "credentialProviders": [
+      {
+        "name": "financial-api-key",
+        "type": "API_KEY"
+      }
+    ]
+  },
+  "gateway": {
+    "name": "owasp-demo-gateway",
+    "protocolType": "MCP",
+    "authorizerType": "CUSTOM_JWT",
+    "protocolConfiguration": {
+      "mcp": {
+        "searchType": "SEMANTIC",
+        "instructions": "Only expose tools appropriate for the authenticated user's role and scope."
+      }
+    }
+  }
+}

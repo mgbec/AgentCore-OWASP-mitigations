@@ -1,0 +1,125 @@
+{
+  "Description": "Least-privilege IAM roles for AgentCore OWASP demo (ASI03 mitigation)",
+  "Roles": {
+    "AgentCoreRuntimeRole": {
+      "Description": "Execution role for the AgentCore Runtime. Scoped to minimum required permissions.",
+      "TrustPolicy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "bedrock-agentcore.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      },
+      "Policies": [
+        {
+          "PolicyName": "AgentCoreRuntimeMinimal",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "InvokeModels",
+                "Effect": "Allow",
+                "Action": [
+                  "bedrock:InvokeModel"
+                ],
+                "Resource": [
+                  "arn:aws:bedrock:*::foundation-model/anthropic.claude-*"
+                ]
+              },
+              {
+                "Sid": "AccessMemory",
+                "Effect": "Allow",
+                "Action": [
+                  "bedrock-agentcore:CreateMemory",
+                  "bedrock-agentcore:GetMemory",
+                  "bedrock-agentcore:SearchMemory"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Sid": "AccessIdentity",
+                "Effect": "Allow",
+                "Action": [
+                  "bedrock-agentcore:GetWorkloadToken",
+                  "bedrock-agentcore:RetrieveCredential"
+                ],
+                "Resource": [
+                  "arn:aws:bedrock-agentcore:*:*:workload-identity/triage-agent-identity",
+                  "arn:aws:bedrock-agentcore:*:*:workload-identity/finance-agent-identity",
+                  "arn:aws:bedrock-agentcore:*:*:workload-identity/knowledge-agent-identity"
+                ]
+              },
+              {
+                "Sid": "CodeInterpreter",
+                "Effect": "Allow",
+                "Action": [
+                  "bedrock-agentcore:InvokeCodeInterpreter"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Sid": "CloudWatchLogs",
+                "Effect": "Allow",
+                "Action": [
+                  "logs:CreateLogGroup",
+                  "logs:CreateLogStream",
+                  "logs:PutLogEvents"
+                ],
+                "Resource": "arn:aws:logs:*:*:log-group:/aws/bedrock-agentcore/*"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "GatewayServiceRole": {
+      "Description": "Role for Gateway to invoke targets. Cannot access secrets directly.",
+      "TrustPolicy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "bedrock-agentcore.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      },
+      "Policies": [
+        {
+          "PolicyName": "GatewayInvokeTargets",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "InvokeRuntime",
+                "Effect": "Allow",
+                "Action": [
+                  "bedrock-agentcore:InvokeAgentRuntime"
+                ],
+                "Resource": "arn:aws:bedrock-agentcore:*:*:runtime/owasp_mitigation_demo"
+              },
+              {
+                "Sid": "InvokeLambdaInterceptors",
+                "Effect": "Allow",
+                "Action": [
+                  "lambda:InvokeFunction"
+                ],
+                "Resource": [
+                  "arn:aws:lambda:*:*:function:owasp-input-validator",
+                  "arn:aws:lambda:*:*:function:owasp-output-filter"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
