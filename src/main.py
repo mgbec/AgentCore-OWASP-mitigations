@@ -24,6 +24,7 @@ from agents.knowledge_agent import KnowledgeAgent
 from observability.tracing import setup_observability
 from security.input_validator import InputValidator
 from security.output_filter import OutputFilter
+from security.prompt_sanitizer import PromptSanitizer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ tracer = setup_observability()
 # Initialize security components
 input_validator = InputValidator()   # ASI01 mitigation - goal hijack prevention
 output_filter = OutputFilter()       # Data leakage mitigation - PII redaction
+prompt_sanitizer = PromptSanitizer() # ASI01 mitigation - structural separation
 
 
 @app.handler
@@ -93,7 +95,17 @@ async def handle_request(request: dict[str, Any], session: dict[str, Any]) -> di
             else:
                 return {"response": "I can help with financial questions and document lookups."}
 
-            result = await agent.execute(user_message, timeout_seconds=30)
+            # --- MITIGATION: ASI01 - Structural Separation ---
+            # Wrap user input in data boundaries before passing to executor.
+            # The executor's system prompt treats <user_request> as untrusted
+            # data to extract parameters from, NOT as instructions to follow.
+            safe_message = prompt_sanitizer.wrap(
+                text=user_message,
+                intent=routing_decision.agent_target,
+                confidence=routing_decision.confidence,
+            )
+
+            result = await agent.execute(safe_message, timeout_seconds=30)
 
         except TimeoutError:
             logger.error("Agent execution timed out", extra={"agent": routing_decision.agent_target})
