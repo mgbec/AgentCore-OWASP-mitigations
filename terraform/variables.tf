@@ -95,3 +95,19 @@ variable "jwt_allowed_clients" {
   type        = list(string)
   default     = []
 }
+
+###############################################################################
+# Cognito Variables
+###############################################################################
+
+variable "cognito_callback_urls" {
+  description = "Allowed callback URLs for the user-facing OAuth client"
+  type        = list(string)
+  default     = ["http://localhost:3000/callback"]
+}
+
+variable "cognito_logout_urls" {
+  description = "Allowed logout URLs for the user-facing OAuth client"
+  type        = list(string)
+  default     = ["http://localhost:3000/logout"]
+}

@@ -69,3 +69,51 @@ output "agentcore_deploy_command" {
       --max-lifetime ${var.runtime_max_lifetime}
   EOT
 }
+
+###############################################################################
+# Cognito Outputs
+###############################################################################
+
+output "cognito_user_pool_id" {
+  description = "Cognito User Pool ID"
+  value       = aws_cognito_user_pool.agent_users.id
+}
+
+output "cognito_issuer_url" {
+  description = "JWT issuer URL for Gateway CUSTOM_JWT authorizer"
+  value       = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.agent_users.id}"
+}
+
+output "cognito_jwks_uri" {
+  description = "JWKS URI for token verification"
+  value       = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.agent_users.id}/.well-known/jwks.json"
+}
+
+output "cognito_token_endpoint" {
+  description = "OAuth 2.1 token endpoint (for client_credentials flow)"
+  value       = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.aws_region}.amazoncognito.com/oauth2/token"
+}
+
+output "cognito_authorization_endpoint" {
+  description = "OAuth 2.1 authorization endpoint (for code flow)"
+  value       = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.aws_region}.amazoncognito.com/oauth2/authorize"
+}
+
+output "cognito_agent_client_id" {
+  description = "Client ID for machine-to-machine agent authentication"
+  value       = aws_cognito_user_pool_client.agent_client.id
+}
+
+output "cognito_user_client_id" {
+  description = "Client ID for user-facing authentication (PKCE)"
+  value       = aws_cognito_user_pool_client.user_client.id
+}
+
+output "gateway_jwt_config" {
+  description = "Configuration to use when creating the Gateway with CUSTOM_JWT"
+  value       = <<-EOT
+    Use these values for Gateway CUSTOM_JWT authorizer:
+      Discovery URL: https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.agent_users.id}/.well-known/openid-configuration
+      Allowed Clients: ["${aws_cognito_user_pool_client.agent_client.id}", "${aws_cognito_user_pool_client.user_client.id}"]
+  EOT
+}

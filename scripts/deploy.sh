@@ -149,17 +149,40 @@ RUNTIME_RESPONSE=$(aws bedrock-agentcore-control create-agent-runtime \
 
 log_info "Runtime creation initiated"
 
-# Create Gateway (ASI01, ASI02 mitigation)
-log_info "Creating AgentCore Gateway..."
-GATEWAY_RESPONSE=$(aws bedrock-agentcore-control create-gateway \
-    --name "owasp-demo-gateway" \
-    --role-arn "${GATEWAY_ROLE_ARN}" \
-    --protocol-type "MCP" \
-    --authorizer-type "AWS_IAM" \
-    --protocol-configuration "{\"mcp\":{\"searchType\":\"SEMANTIC\",\"instructions\":\"Only expose tools appropriate for the authenticated user role and scope.\"}}" \
-    --interceptor-configurations "[{\"interceptor\":{\"lambda\":{\"arn\":\"${INPUT_VALIDATOR_ARN}\"}},\"interceptionPoints\":[\"REQUEST\"]},{\"interceptor\":{\"lambda\":{\"arn\":\"${OUTPUT_FILTER_ARN}\"}},\"interceptionPoints\":[\"RESPONSE\"]}]" \
-    --exception-level "DEBUG" \
-    --region "${REGION}" 2>&1) || true
+# Capture Cognito outputs for Gateway JWT config
+COGNITO_ISSUER=$(terraform -chdir="${TERRAFORM_DIR}" output -raw cognito_issuer_url 2>/dev/null) || true
+COGNITO_AGENT_CLIENT=$(terraform -chdir="${TERRAFORM_DIR}" output -raw cognito_agent_client_id 2>/dev/null) || true
+COGNITO_USER_CLIENT=$(terraform -chdir="${TERRAFORM_DIR}" output -raw cognito_user_client_id 2>/dev/null) || true
+
+# Create Gateway with CUSTOM_JWT auth (ASI01, ASI02, ASI03 mitigation)
+log_info "Creating AgentCore Gateway with CUSTOM_JWT (Cognito)..."
+
+if [ -n "${COGNITO_ISSUER}" ] && [ "${COGNITO_ISSUER}" != "" ]; then
+    DISCOVERY_URL="${COGNITO_ISSUER}/.well-known/openid-configuration"
+    AUTHORIZER_CONFIG="{\"customJWTAuthorizer\":{\"discoveryUrl\":\"${DISCOVERY_URL}\",\"allowedClients\":[\"${COGNITO_AGENT_CLIENT}\",\"${COGNITO_USER_CLIENT}\"]}}"
+
+    GATEWAY_RESPONSE=$(aws bedrock-agentcore-control create-gateway \
+        --name "owasp-demo-gateway" \
+        --role-arn "${GATEWAY_ROLE_ARN}" \
+        --protocol-type "MCP" \
+        --authorizer-type "CUSTOM_JWT" \
+        --authorizer-configuration "${AUTHORIZER_CONFIG}" \
+        --protocol-configuration "{\"mcp\":{\"searchType\":\"SEMANTIC\",\"instructions\":\"Only expose tools appropriate for the authenticated user role and scope.\"}}" \
+        --interceptor-configurations "[{\"interceptor\":{\"lambda\":{\"arn\":\"${INPUT_VALIDATOR_ARN}\"}},\"interceptionPoints\":[\"REQUEST\"]},{\"interceptor\":{\"lambda\":{\"arn\":\"${OUTPUT_FILTER_ARN}\"}},\"interceptionPoints\":[\"RESPONSE\"]}]" \
+        --exception-level "DEBUG" \
+        --region "${REGION}" 2>&1) || true
+else
+    log_warn "Cognito outputs not available, falling back to AWS_IAM auth"
+    GATEWAY_RESPONSE=$(aws bedrock-agentcore-control create-gateway \
+        --name "owasp-demo-gateway" \
+        --role-arn "${GATEWAY_ROLE_ARN}" \
+        --protocol-type "MCP" \
+        --authorizer-type "AWS_IAM" \
+        --protocol-configuration "{\"mcp\":{\"searchType\":\"SEMANTIC\",\"instructions\":\"Only expose tools appropriate for the authenticated user role and scope.\"}}" \
+        --interceptor-configurations "[{\"interceptor\":{\"lambda\":{\"arn\":\"${INPUT_VALIDATOR_ARN}\"}},\"interceptionPoints\":[\"REQUEST\"]},{\"interceptor\":{\"lambda\":{\"arn\":\"${OUTPUT_FILTER_ARN}\"}},\"interceptionPoints\":[\"RESPONSE\"]}]" \
+        --exception-level "DEBUG" \
+        --region "${REGION}" 2>&1) || true
+fi
 
 log_info "Gateway creation initiated"
 
