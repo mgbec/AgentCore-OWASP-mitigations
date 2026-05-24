@@ -169,13 +169,8 @@ log_info "Gateway creation initiated"
 
 log_info "=== Step 4: Deploying Cedar policies ==="
 
-# Note: Policy Engine creation and policy deployment requires the
-# Gateway to be in READY state. In production, use a waiter or
-# separate pipeline step.
-
-log_info "Cedar policies are defined in policies/*.cedar"
-log_info "Deploy them after Gateway reaches READY state using:"
-log_info "  agentcore policy create --name <policy-name> --definition-file policies/<file>.cedar"
+# Deploy policies via the dedicated script
+bash "${SCRIPT_DIR}/deploy-policies.sh"
 
 ###############################################################################
 # Summary
