@@ -50,20 +50,22 @@ else
     if [ "${REGION}" = "us-east-1" ]; then
         aws s3api create-bucket \
             --bucket "${BUCKET_NAME}" \
-            --region "${REGION}"
+            --region "${REGION}" >/dev/null
     else
         aws s3api create-bucket \
             --bucket "${BUCKET_NAME}" \
             --region "${REGION}" \
-            --create-bucket-configuration LocationConstraint="${REGION}"
+            --create-bucket-configuration LocationConstraint="${REGION}" >/dev/null
     fi
 
     # Enable versioning (allows state recovery)
+    log_info "Enabling versioning..."
     aws s3api put-bucket-versioning \
         --bucket "${BUCKET_NAME}" \
         --versioning-configuration Status=Enabled
 
     # Enable server-side encryption
+    log_info "Enabling KMS encryption..."
     aws s3api put-bucket-encryption \
         --bucket "${BUCKET_NAME}" \
         --server-side-encryption-configuration '{
@@ -76,6 +78,7 @@ else
         }'
 
     # Block all public access
+    log_info "Blocking public access..."
     aws s3api put-public-access-block \
         --bucket "${BUCKET_NAME}" \
         --public-access-block-configuration '{
@@ -102,8 +105,9 @@ else
         --attribute-definitions AttributeName=LockID,AttributeType=S \
         --key-schema AttributeName=LockID,KeyType=HASH \
         --billing-mode PAY_PER_REQUEST \
-        --region "${REGION}"
+        --region "${REGION}" >/dev/null
 
+    log_info "Waiting for table to become active (this takes ~10 seconds)..."
     aws dynamodb wait table-exists \
         --table-name "${DYNAMO_TABLE}" \
         --region "${REGION}"
