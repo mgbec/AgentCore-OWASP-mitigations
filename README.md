@@ -114,18 +114,37 @@ agentcore-owasp-mitigations/
 
 - Python 3.13+
 - AWS CLI configured with appropriate permissions
-- AgentCore CLI (`pip install bedrock-agentcore-sdk`)
+- AgentCore CLI (`npm install -g @aws/agentcore`)
+- Terraform >= 1.5.0 (for infrastructure deployment)
 
 ### Installation
 
 ```bash
 cd agentcore-owasp-mitigations
+
+# Create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # Linux/macOS
+# .venv\Scripts\activate   # Windows
+
+# Install dependencies
+pip install --upgrade pip
 pip install -r requirements.txt
+
+# Install dev/test dependencies
+pip install bandit pip-audit pytest
+```
+
+To deactivate the virtual environment when you're done:
+
+```bash
+deactivate
 ```
 
 ### Local Development
 
 ```bash
+source .venv/bin/activate
 python src/main.py
 ```
 
