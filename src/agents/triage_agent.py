@@ -15,7 +15,11 @@ from dataclasses import dataclass
 from enum import Enum
 
 from strands import Agent
-from bedrock_agentcore_sdk.identity import get_workload_token
+
+try:
+    from bedrock_agentcore_sdk.identity import get_workload_token
+except ImportError:
+    get_workload_token = None
 
 from security.input_validator import InputValidator
 

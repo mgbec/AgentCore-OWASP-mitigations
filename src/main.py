@@ -13,7 +13,10 @@ import json
 import logging
 from typing import Any
 
-from bedrock_agentcore_sdk import AgentCoreApp
+try:
+    from bedrock_agentcore_sdk import AgentCoreApp
+except ImportError:
+    AgentCoreApp = None
 
 from agents.triage_agent import TriageAgent
 from agents.finance_agent import FinanceAgent
@@ -117,4 +120,4 @@ async def handle_request(request: dict[str, Any], session: dict[str, Any]) -> di
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=8080)  # nosec B104 - required for container runtime

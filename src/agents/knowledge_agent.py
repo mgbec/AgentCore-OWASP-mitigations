@@ -17,8 +17,14 @@ from dataclasses import dataclass
 from typing import Any
 
 from strands import Agent, tool
-from bedrock_agentcore_sdk.memory import MemoryClient, MemoryNamespace
-from bedrock_agentcore_sdk.identity import get_workload_token
+
+try:
+    from bedrock_agentcore_sdk.memory import MemoryClient, MemoryNamespace
+    from bedrock_agentcore_sdk.identity import get_workload_token
+except ImportError:
+    MemoryClient = None
+    MemoryNamespace = None
+    get_workload_token = None
 
 from security.memory_guard import MemoryGuard
 

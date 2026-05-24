@@ -6,7 +6,7 @@ rate limiting prevent agents from misusing their tools.
 """
 
 import pytest
-from src.tools.financial_tools import SecureQueryBuilder, FinancialCalculator
+from tools.financial_tools import SecureQueryBuilder, FinancialCalculator
 
 
 @pytest.fixture
@@ -79,6 +79,8 @@ class TestToolMisusePrevention:
         """Financial calculator rejects invalid principal amounts."""
         import asyncio
         calc = FinancialCalculator()
+        if calc.interpreter is None:
+            pytest.skip("AgentCore SDK not installed")
 
         result = asyncio.run(calc.calculate_interest(-1000, 0.05, 5))
         assert not result.success
@@ -88,6 +90,8 @@ class TestToolMisusePrevention:
         """Financial calculator rejects rates outside 0-1 range."""
         import asyncio
         calc = FinancialCalculator()
+        if calc.interpreter is None:
+            pytest.skip("AgentCore SDK not installed")
 
         result = asyncio.run(calc.calculate_interest(1000, 5.0, 5))
         assert not result.success
@@ -97,6 +101,8 @@ class TestToolMisusePrevention:
         """Financial calculator rejects unreasonable year values."""
         import asyncio
         calc = FinancialCalculator()
+        if calc.interpreter is None:
+            pytest.skip("AgentCore SDK not installed")
 
         result = asyncio.run(calc.calculate_interest(1000, 0.05, -1))
         assert not result.success

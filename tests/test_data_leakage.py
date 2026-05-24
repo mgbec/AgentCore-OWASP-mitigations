@@ -6,7 +6,7 @@ PII and sensitive data from agent responses.
 """
 
 import pytest
-from src.security.output_filter import OutputFilter
+from security.output_filter import OutputFilter
 
 
 @pytest.fixture
@@ -54,8 +54,8 @@ class TestDataLeakagePrevention:
 
     def test_api_key_redacted(self, filter):
         """API keys are redacted from output."""
-        # Using a clearly fake test key pattern (not a real secret)
-        fake_key = "sk_test_" + "x" * 24
+        # Key format: (sk|pk|api) + underscore + 20+ alphanumeric chars
+        fake_key = "pk_a1b2c3d4e5f6g7h8i9j0k1l2"
         text = f"Your API key is {fake_key}"
         result = filter.filter(text)
         assert fake_key not in result

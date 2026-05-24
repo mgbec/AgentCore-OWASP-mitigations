@@ -14,7 +14,10 @@ import logging
 from typing import Any
 from dataclasses import dataclass
 
-from bedrock_agentcore_sdk.tools import CodeInterpreter
+try:
+    from bedrock_agentcore_sdk.tools import CodeInterpreter
+except ImportError:
+    CodeInterpreter = None  # SDK not available in test environment
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +42,13 @@ class FinancialCalculator:
     """
 
     def __init__(self):
-        self.interpreter = CodeInterpreter(
-            timeout_seconds=10,
-            max_memory_mb=256,
-        )
+        if CodeInterpreter is not None:
+            self.interpreter = CodeInterpreter(
+                timeout_seconds=10,
+                max_memory_mb=256,
+            )
+        else:
+            self.interpreter = None
 
     async def calculate_interest(
         self, principal: float, rate: float, years: int

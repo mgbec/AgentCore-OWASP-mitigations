@@ -1,0 +1,13 @@
+[project]
+name = "agentcore-owasp-mitigations"
+version = "1.0.0"
+description = "AgentCore OWASP Risk Mitigation Demo"
+requires-python = ">=3.13"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+skips = ["B104"]  # Allow 0.0.0.0 binding in container runtime entry point

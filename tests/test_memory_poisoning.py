@@ -7,7 +7,7 @@ content into agent memory stores.
 
 import time
 import pytest
-from src.security.memory_guard import MemoryGuard
+from security.memory_guard import MemoryGuard
 
 
 @pytest.fixture

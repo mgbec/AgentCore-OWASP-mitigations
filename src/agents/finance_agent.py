@@ -21,8 +21,14 @@ from dataclasses import dataclass
 from typing import Any
 
 from strands import Agent, tool
-from bedrock_agentcore_sdk.identity import get_workload_token, retrieve_credential
-from bedrock_agentcore_sdk.tools import CodeInterpreter
+
+try:
+    from bedrock_agentcore_sdk.identity import get_workload_token, retrieve_credential
+    from bedrock_agentcore_sdk.tools import CodeInterpreter
+except ImportError:
+    get_workload_token = None
+    retrieve_credential = None
+    CodeInterpreter = None
 
 from security.output_filter import OutputFilter
 
