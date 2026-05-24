@@ -153,6 +153,10 @@ python src/main.py
 The project includes Terraform for infrastructure and scripts for the full deployment pipeline:
 
 ```bash
+# 0. Bootstrap (one-time): create S3 state bucket and DynamoDB lock table
+export AWS_REGION=us-east-1
+bash scripts/bootstrap.sh
+
 # 1. Validate everything before deploying
 bash scripts/validate.sh
 
@@ -160,14 +164,17 @@ bash scripts/validate.sh
 bash scripts/deploy.sh
 
 # 3. Or deploy step-by-step:
-#    a. Infrastructure first
+#    a. Bootstrap state bucket (one-time)
+bash scripts/bootstrap.sh
+
+#    b. Infrastructure
 cd terraform
 cp terraform.tfvars.example terraform.tfvars  # Edit with your values
-terraform init
+terraform init -backend-config=backend.hcl
 terraform plan
 terraform apply
 
-#    b. Package and upload agent code
+#    c. Package and upload agent code
 bash scripts/package-agent.sh
 
 #    c. Deploy AgentCore resources using outputs from Terraform

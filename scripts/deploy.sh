@@ -56,8 +56,13 @@ log_info "=== Step 1: Deploying Terraform infrastructure ==="
 
 cd "${TERRAFORM_DIR}"
 
-# Initialize Terraform
-terraform init -input=false
+# Initialize Terraform with S3 backend
+if [ -f backend.hcl ]; then
+    terraform init -input=false -backend-config=backend.hcl
+else
+    log_error "backend.hcl not found. Run scripts/bootstrap.sh first."
+    exit 1
+fi
 
 # Plan and apply
 terraform plan -out=tfplan -input=false

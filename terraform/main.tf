@@ -25,12 +25,10 @@ terraform {
     }
   }
 
-  # Local backend for development. For production, use S3:
-  # backend "s3" {
-  #   bucket = "your-terraform-state-bucket"
-  #   key    = "agentcore-owasp-demo/terraform.tfstate"
-  #   region = "us-east-1"
-  # }
+  # State stored in S3 with DynamoDB locking.
+  # Run scripts/bootstrap.sh first to create the bucket and table,
+  # then init with: terraform init -backend-config=backend.hcl
+  backend "s3" {}
 }
 
 provider "aws" {
