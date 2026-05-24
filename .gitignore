@@ -51,5 +51,19 @@ htmlcov/
 *.log
 
 # Distribution
+dist/
 *.tar.gz
 *.zip
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/tfplan
+terraform/.build/
+terraform/terraform.tfvars
+terraform/backend.hcl
+
+# Lambda build artifacts
+lambda/**/*.zip

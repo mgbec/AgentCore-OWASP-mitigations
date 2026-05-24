@@ -129,11 +129,53 @@ pip install -r requirements.txt
 python src/main.py
 ```
 
-### Deploy to AgentCore
+### Deploy to AgentCore (Full Deployment)
+
+The project includes Terraform for infrastructure and scripts for the full deployment pipeline:
 
 ```bash
-bash infrastructure/deploy.sh
+# 1. Validate everything before deploying
+bash scripts/validate.sh
+
+# 2. Deploy infrastructure + agent (one command)
+bash scripts/deploy.sh
+
+# 3. Or deploy step-by-step:
+#    a. Infrastructure first
+cd terraform
+cp terraform.tfvars.example terraform.tfvars  # Edit with your values
+terraform init
+terraform plan
+terraform apply
+
+#    b. Package and upload agent code
+bash scripts/package-agent.sh
+
+#    c. Deploy AgentCore resources using outputs from Terraform
+#       (see terraform output agentcore_deploy_command)
 ```
+
+### Teardown
+
+```bash
+bash scripts/destroy.sh
+```
+
+### Terraform Infrastructure
+
+The `terraform/` directory provisions:
+
+| Resource | Purpose | OWASP Mitigation |
+|----------|---------|-----------------|
+| VPC + Private Subnets | Network isolation, no internet | ASI04, ASI05, Model Exfiltration |
+| VPC Endpoints | AWS service access without internet | ASI04 |
+| Security Groups | Restricted egress | ASI10 |
+| IAM Roles | Least-privilege per component | ASI03 |
+| KMS Key | Encryption at rest for secrets | Credential Exposure |
+| S3 Buckets | Encrypted code storage | ASI04 |
+| Lambda Interceptors | Input/output filtering at Gateway | ASI01, Data Leakage |
+| CloudWatch + Alarms | Security monitoring & alerting | ASI09, ASI10 |
+| VPC Flow Logs | Network anomaly detection | ASI10 |
 
 ## How Each Component Demonstrates Mitigations
 

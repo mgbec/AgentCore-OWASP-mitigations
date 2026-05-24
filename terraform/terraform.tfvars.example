@@ -1,0 +1,26 @@
+# Copy this file to terraform.tfvars and fill in your values
+# DO NOT commit terraform.tfvars to version control
+
+aws_region           = "us-east-1"
+environment          = "dev"
+project_name         = "owasp-mitigation-demo"
+
+# VPC Configuration
+vpc_cidr             = "10.0.0.0/16"
+private_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"]
+availability_zones   = ["us-east-1a", "us-east-1b"]
+
+# AgentCore Runtime (ASI08 - Cascading Failure mitigation)
+runtime_idle_timeout = 300   # 5 minutes
+runtime_max_lifetime = 1800  # 30 minutes
+
+# Monitoring
+log_retention_days   = 90
+enable_vpc_flow_logs = true
+
+# Secrets (pass via environment or -var flag, never commit)
+# financial_api_key = "your-api-key-here"
+
+# Gateway JWT Configuration
+# jwt_issuer_url      = "https://your-idp.example.com/.well-known/openid-configuration"
+# jwt_allowed_clients = ["your-client-id"]
