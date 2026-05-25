@@ -24,3 +24,8 @@ enable_vpc_flow_logs = true
 # Gateway JWT Configuration
 # jwt_issuer_url      = "https://your-idp.example.com/.well-known/openid-configuration"
 # jwt_allowed_clients = ["your-client-id"]
+
+# Cognito OAuth 2.1 (callback URLs for user-facing client)
+# Update these when you have a frontend app
+cognito_callback_urls = ["http://localhost:3000/callback"]
+cognito_logout_urls   = ["http://localhost:3000/logout"]
