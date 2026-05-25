@@ -43,7 +43,7 @@ This project implements a **Secure Financial Assistant** — a multi-agent syste
 
 | Risk | Description | AgentCore Mitigation |
 |------|-------------|---------------------|
-| **ASI01** | Agent Goal Hijack | Gateway Cedar policies restrict allowed actions; input validation via interceptors |
+| **ASI01** | Agent Goal Hijack | Gateway Cedar policies + Lambda interceptors; **structural separation** (user input wrapped in data boundaries) |
 | **ASI02** | Tool Misuse & Exploitation | Gateway tool filtering + policy engine enforcement; Code Interpreter sandboxing |
 | **ASI03** | Identity & Privilege Abuse | Identity service with scoped workload identities and short-lived credentials |
 | **ASI04** | Supply Chain Vulnerabilities | Gateway target pinning; Runtime container isolation; VPC network restrictions |
@@ -76,19 +76,25 @@ This project implements a **Secure Financial Assistant** — a multi-agent syste
 ```
 agentcore-owasp-mitigations/
 ├── README.md
+├── SECURITY.md                       # Vulnerability disclosure policy
+├── LICENSE
+├── pyproject.toml                    # Python/pytest configuration
 ├── requirements.txt
 ├── agentcore.json                    # AgentCore deployment config
+├── conftest.py                       # Test path setup
+├── docs/
+│   └── data-flow-diagram.md         # Security controls walkthrough
 ├── src/
 │   ├── agents/
-│   │   ├── triage_agent.py          # Orchestrator with goal validation
+│   │   ├── triage_agent.py          # Orchestrator with structural separation
 │   │   ├── finance_agent.py         # Executor with tool constraints
 │   │   └── knowledge_agent.py       # RAG agent with memory isolation
 │   ├── tools/
-│   │   ├── financial_tools.py       # Scoped financial operations
-│   │   └── data_retrieval_tools.py  # Document retrieval with DLP
+│   │   └── financial_tools.py       # Scoped financial operations
 │   ├── security/
 │   │   ├── input_validator.py       # Prompt injection detection
 │   │   ├── output_filter.py         # PII/sensitive data redaction
+│   │   ├── prompt_sanitizer.py      # Structural separation (data boundaries)
 │   │   ├── policy_definitions.py    # Cedar policy templates
 │   │   └── memory_guard.py          # Memory write validation
 │   ├── observability/
@@ -98,14 +104,43 @@ agentcore-owasp-mitigations/
 │   ├── tool_access.cedar            # Tool-level access control
 │   ├── data_scope.cedar             # Data boundary enforcement
 │   └── agent_behavior.cedar         # Behavioral constraints
+├── lambda/
+│   ├── input_validator/handler.py   # Gateway REQUEST interceptor
+│   └── output_filter/handler.py     # Gateway RESPONSE interceptor
+├── terraform/
+│   ├── main.tf                      # Provider and backend config
+│   ├── variables.tf                 # All configurable inputs
+│   ├── outputs.tf                   # Values for AgentCore deployment
+│   ├── vpc.tf                       # Network isolation
+│   ├── iam.tf                       # Least-privilege roles
+│   ├── kms.tf                       # Encryption keys
+│   ├── s3.tf                        # Code storage
+│   ├── secrets.tf                   # Credential storage
+│   ├── lambda.tf                    # Gateway interceptors
+│   ├── cognito.tf                   # OAuth 2.1 JWT provider
+│   ├── monitoring.tf                # CloudWatch alarms
+│   └── terraform.tfvars.example     # Configuration template
+├── scripts/
+│   ├── bootstrap.sh                 # Create S3 state bucket (one-time)
+│   ├── deploy.sh                    # Full deployment pipeline
+│   ├── deploy-policies.sh           # Cedar policy deployment
+│   ├── package-agent.sh             # Build agent zip package
+│   ├── validate.sh                  # Pre-deployment checks
+│   └── destroy.sh                   # Teardown with confirmation
 ├── infrastructure/
-│   ├── deploy.sh                    # Deployment script
-│   └── iam_roles.json               # Least-privilege IAM policies
-└── tests/
-    ├── test_goal_hijack.py          # ASI01 attack simulation
-    ├── test_tool_misuse.py          # ASI02 attack simulation
-    ├── test_memory_poisoning.py     # ASI06 attack simulation
-    └── test_data_leakage.py         # Data security validation
+│   ├── deploy.sh                    # Legacy AgentCore CLI deployment
+│   └── iam_roles.json               # IAM role reference
+├── tests/
+│   ├── test_goal_hijack.py          # ASI01 attack simulation
+│   ├── test_tool_misuse.py          # ASI02 attack simulation
+│   ├── test_memory_poisoning.py     # ASI06 attack simulation
+│   ├── test_data_leakage.py         # Data security validation
+│   └── test_prompt_sanitizer.py     # Structural separation tests
+└── .github/
+    ├── CODEOWNERS                   # Security review requirements
+    ├── dependabot.yml               # Automated dependency updates
+    ├── pull_request_template.md     # Security checklist for PRs
+    └── workflows/security.yml       # CI: SAST, audit, tests
 ```
 
 ## Getting Started
@@ -200,6 +235,7 @@ The `terraform/` directory provisions:
 | KMS Key | Encryption at rest for secrets | Credential Exposure |
 | S3 Buckets | Encrypted code storage | ASI04 |
 | Lambda Interceptors | Input/output filtering at Gateway | ASI01, Data Leakage |
+| Cognito User Pool | OAuth 2.1 JWT authentication (PKCE + client_credentials) | ASI03, ASI09 |
 | CloudWatch + Alarms | Security monitoring & alerting | ASI09, ASI10 |
 | VPC Flow Logs | Network anomaly detection | ASI10 |
 
@@ -208,21 +244,32 @@ The `terraform/` directory provisions:
 ### 1. AgentCore Gateway — Controlled Entry Point (ASI01, ASI02, ASI04, Data Leakage)
 
 The Gateway acts as the single entry point for all agent interactions:
-- **CUSTOM_JWT authorization** prevents unauthorized access
+- **CUSTOM_JWT authorization** via Cognito (OAuth 2.1) prevents unauthorized access
 - **Cedar policy engine** enforces fine-grained tool-level permissions
 - **Lambda interceptors** scan inputs/outputs for prompt injection and PII
 - **Semantic search** scopes tool discovery to prevent tool confusion attacks
 - **Target pinning** ensures only attested MCP servers are reachable
 
-### 2. AgentCore Identity — Scoped Credentials (ASI03, Credential Exposure)
+### 2. Structural Separation — Prompt Injection Containment (ASI01)
+
+User input is architecturally isolated from agent instructions:
+- **PromptSanitizer** strips invisible characters and escapes boundary-breaking sequences
+- User text is wrapped in `<user_request>` tags with `trust_level: untrusted` metadata
+- Agent system prompts explicitly declare tagged content as DATA, not instructions
+- Even if injection passes detection, it cannot escape its structural container
+
+See [docs/data-flow-diagram.md](docs/data-flow-diagram.md) for the full walkthrough.
+
+### 3. AgentCore Identity + Cognito — Scoped Credentials (ASI03, Credential Exposure)
 
 Each agent gets a unique workload identity:
-- **Short-lived tokens** prevent credential reuse across sessions
+- **Cognito User Pool** issues OAuth 2.1 JWTs with custom scopes (`finance.read`, `finance.write`, `knowledge.read`)
+- **Short-lived tokens** (1 hour) prevent credential reuse across sessions
 - **Token vault with KMS** encrypts secrets at rest
-- **OAuth2 providers** enable secure third-party integrations
+- **PKCE** required for browser-based clients (OAuth 2.1 mandate)
 - **Resource policies** restrict which identities can invoke which runtimes
 
-### 3. AgentCore Runtime — Isolated Execution (ASI05, ASI08, ASI10)
+### 4. AgentCore Runtime — Isolated Execution (ASI05, ASI08, ASI10)
 
 Agents run in isolated MicroVMs:
 - **Session isolation** prevents cross-agent contamination
@@ -230,7 +277,7 @@ Agents run in isolated MicroVMs:
 - **VPC mode** restricts network egress to prevent data exfiltration
 - **Container-level isolation** prevents sandbox escape
 
-### 4. AgentCore Memory — Safe Context (ASI06, Cross-User Bleed, Vector Risks)
+### 5. AgentCore Memory — Safe Context (ASI06, Cross-User Bleed, Vector Risks)
 
 Memory is segmented and validated:
 - **Namespace isolation** per user, session, and agent
@@ -238,7 +285,7 @@ Memory is segmented and validated:
 - **Trust scoring** to decay unverified entries
 - **Event memory** for audit trail of all interactions
 
-### 5. AgentCore Code Interpreter — Sandboxed Execution (ASI05, Unsafe SQL)
+### 6. AgentCore Code Interpreter — Sandboxed Execution (ASI05, Unsafe SQL)
 
 Code runs in hardened sandboxes:
 - **No network access** by default
@@ -246,7 +293,7 @@ Code runs in hardened sandboxes:
 - **No persistent state** between executions
 - **Output validation** before returning results
 
-### 6. AgentCore Observability — Detection & Audit (ASI09, ASI10, Telemetry Leakage)
+### 7. AgentCore Observability — Detection & Audit (ASI09, ASI10, Telemetry Leakage)
 
 Full tracing with security focus:
 - **Tamper-evident logs** of all agent actions
@@ -259,15 +306,22 @@ Full tracing with security focus:
 Run the attack simulation tests:
 
 ```bash
+source .venv/bin/activate
 pytest tests/ -v
 ```
 
-These tests validate that:
-- Prompt injection attempts are blocked at the Gateway
+These tests validate that (52 tests, 3 skipped without SDK):
+- Prompt injection attempts are detected and blocked
+- Structural boundaries prevent tag escape and invisible char injection
 - Tool access is denied when policy violations occur
+- SQL injection in tool parameters is blocked
 - Memory poisoning attempts are rejected
-- Sensitive data is redacted from outputs
-- Rogue agent behavior triggers containment
+- Sensitive data (SSN, credit cards, emails, API keys) is redacted from outputs
+- Trust scores decay over time for unverified memory entries
+
+## Documentation
+
+- [Data Flow Diagram](docs/data-flow-diagram.md) — Full walkthrough of request flow, attack scenarios, and 8-layer defense model
 
 ## References
 
