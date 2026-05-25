@@ -148,11 +148,11 @@ for policy_file in "${POLICIES_DIR}"/*.cedar; do
 done
 
 ###############################################################################
-# Step 3: Associate with Gateway (if available)
+# Step 3: Associate Policy Engine with Gateway
 ###############################################################################
 
 echo ""
-log_info "Step 3: Checking for Gateway to associate..."
+log_info "Step 3: Associating Policy Engine with Gateway..."
 
 GATEWAY_ID=$(aws bedrock-agentcore-control list-gateways \
     --region "${REGION}" \
@@ -160,15 +160,50 @@ GATEWAY_ID=$(aws bedrock-agentcore-control list-gateways \
     --output text 2>/dev/null) || true
 
 if [ -n "${GATEWAY_ID}" ] && [ "${GATEWAY_ID}" != "None" ]; then
-    POLICY_ENGINE_ARN="arn:aws:bedrock-agentcore:${REGION}:$(aws sts get-caller-identity --query Account --output text):policy-engine/${POLICY_ENGINE_ID}"
+    ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+    POLICY_ENGINE_ARN="arn:aws:bedrock-agentcore:${REGION}:${ACCOUNT_ID}:policy-engine/${POLICY_ENGINE_ID}"
 
-    log_info "  Associating Policy Engine with Gateway: ${GATEWAY_ID}"
-    log_info "  (Update Gateway to add policyEngineConfiguration)"
-    log_warn "  Note: Gateway update requires all original fields. Skipping auto-association."
-    log_info "  To associate manually, update the Gateway with:"
-    echo "    --policy-engine-configuration '{\"arn\": \"${POLICY_ENGINE_ARN}\", \"mode\": \"ENFORCE\"}'"
+    log_info "  Gateway: ${GATEWAY_ID}"
+    log_info "  Policy Engine ARN: ${POLICY_ENGINE_ARN}"
+
+    # Get current Gateway config (UpdateGateway requires all fields)
+    GATEWAY_JSON=$(aws bedrock-agentcore-control get-gateway \
+        --gateway-identifier "${GATEWAY_ID}" \
+        --region "${REGION}" 2>/dev/null) || true
+
+    if [ -n "${GATEWAY_JSON}" ]; then
+        # Extract current values
+        GW_NAME=$(echo "${GATEWAY_JSON}" | jq -r '.name')
+        GW_ROLE=$(echo "${GATEWAY_JSON}" | jq -r '.roleArn')
+        GW_PROTOCOL=$(echo "${GATEWAY_JSON}" | jq -r '.protocolType')
+        GW_AUTH_TYPE=$(echo "${GATEWAY_JSON}" | jq -r '.authorizerType')
+        GW_AUTH_CONFIG=$(echo "${GATEWAY_JSON}" | jq -c '.authorizerConfiguration // empty')
+        GW_PROTOCOL_CONFIG=$(echo "${GATEWAY_JSON}" | jq -c '.protocolConfiguration // empty')
+
+        # Build update command with policy engine added
+        UPDATE_ARGS=(
+            --gateway-identifier "${GATEWAY_ID}"
+            --name "${GW_NAME}"
+            --role-arn "${GW_ROLE}"
+            --protocol-type "${GW_PROTOCOL}"
+            --authorizer-type "${GW_AUTH_TYPE}"
+            --policy-engine-configuration "{\"arn\":\"${POLICY_ENGINE_ARN}\",\"mode\":\"ENFORCE\"}"
+            --region "${REGION}"
+        )
+
+        [ -n "${GW_AUTH_CONFIG}" ] && UPDATE_ARGS+=(--authorizer-configuration "${GW_AUTH_CONFIG}")
+        [ -n "${GW_PROTOCOL_CONFIG}" ] && UPDATE_ARGS+=(--protocol-configuration "${GW_PROTOCOL_CONFIG}")
+
+        aws bedrock-agentcore-control update-gateway "${UPDATE_ARGS[@]}" >/dev/null 2>&1 && {
+            log_info "  Policy Engine associated with Gateway (mode: ENFORCE)"
+        } || {
+            log_warn "  Failed to associate Policy Engine with Gateway"
+            log_warn "  You may need to associate manually via the console or CLI"
+        }
+    fi
 else
-    log_warn "  No Gateway found. Deploy the Gateway first, then re-run this script."
+    log_warn "  No Gateway found named 'owasp-demo-gateway'"
+    log_warn "  Deploy the Gateway first, then re-run this script"
 fi
 
 ###############################################################################
